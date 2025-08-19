@@ -14,9 +14,9 @@ RUN apt-get update && apt-get install -y \
 
 # Настраиваем локаль
 RUN locale-gen ru_RU.UTF-8
-ENV LANG ru_RU.UTF-8
-ENV LANGUAGE ru_RU:ru
-ENV LC_ALL ru_RU.UTF-8
+ENV LANG=ru_RU.UTF-8
+ENV LANGUAGE=ru_RU:ru
+ENV LC_ALL=ru_RU.UTF-8
 
 # Устанавливаем расширения PHP
 RUN docker-php-ext-configure gd --with-freetype --with-jpeg
@@ -31,6 +31,15 @@ RUN a2enmod rewrite
 # Копируем bitrixsetup.php в корень веб-сервера
 COPY bitrixsetup.php /var/www/html/
 
+# Копируем файл конфигурации Apache
+COPY apache.conf /etc/apache2/sites-available/000-default.conf
+
+# Включаем новый сайт
+RUN a2ensite 000-default.conf
+
+# Перезапускаем Apache (этот шаг может быть необязателен, так как изменения вsites-available применяются при старте)
+# RUN service apache2 restart
+
 # Устанавливаем права на папку /var/www/html/
 RUN chown -R www-data:www-data /var/www/html/
 RUN chmod -R 755 /var/www/html/
@@ -44,8 +53,9 @@ RUN chmod +x /usr/local/bin/composer
 # Устанавливаем ionCube Loader
 RUN apt-get update && apt-get install -y wget
 RUN wget https://downloads.ioncube.com/loader_downloads/ioncube_loaders_lin_x86-64.tar.gz
-RUN tar xzf ioncube_loaders_lin_x86-64.tar.gz
-RUN cp ioncube/ioncube_loader_lin_8.1.so /usr/lib/php/20210902/
+RUN tar xzf ioncube_loaders_lin_x86-64.tar.gz && rm ioncube_loaders_lin_x86-64.tar.gz
+RUN mkdir -p /usr/lib/php/20210902/ && \
+    cp ioncube/ioncube_loader_lin_8.1.so /usr/lib/php/20210902/
 RUN echo "zend_extension = /usr/lib/php/20210902/ioncube_loader_lin_8.1.so" > /usr/local/etc/php/conf.d/00-ioncube.ini
 
 # Очистка apt кеша
