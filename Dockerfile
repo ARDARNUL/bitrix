@@ -1,6 +1,5 @@
 FROM php:8.1-apache
 
-# Обновляем пакеты и устанавливаем необходимые расширения PHP
 RUN apt-get update && apt-get install -y \
     zip \
     unzip \
@@ -10,53 +9,51 @@ RUN apt-get update && apt-get install -y \
     libjpeg62-turbo-dev \
     libfreetype6-dev \
     locales \
+    wget \
     --no-install-recommends
 
-# Настраиваем локаль
+# Локализация
 RUN locale-gen ru_RU.UTF-8
 ENV LANG=ru_RU.UTF-8
 ENV LANGUAGE=ru_RU:ru
 ENV LC_ALL=ru_RU.UTF-8
 
-# Устанавливаем расширения PHP
-RUN docker-php-ext-configure gd --with-freetype --with-jpeg
-RUN docker-php-ext-install -j $(nproc) gd
-RUN docker-php-ext-install -j $(nproc) zip
-RUN docker-php-ext-install -j $(nproc) mysqli
-RUN docker-php-ext-enable mysqli
+# PHP расширения - ВСЕ ВМЕСТЕ в одном блоке
+RUN docker-php-ext-configure gd --with-freetype --with-jpeg && \
+    docker-php-ext-install -j$(nproc) \
+        gd \
+        zip \
+        mysqli \
+        pdo_mysql
 
-# Включаем mod_rewrite
+# Apache модули
 RUN a2enmod rewrite
 
-# Копируем bitrixsetup.php в корень веб-сервера
+# Копирование файлов
 COPY bitrixsetup.php /var/www/html/
-
-# Копируем файл конфигурации Apache
 COPY apache.conf /etc/apache2/sites-available/000-default.conf
 
-# Включаем новый сайт
+# Настройка Apache
 RUN a2ensite 000-default.conf
 
-# Перезапускаем Apache (этот шаг может быть необязателен, так как изменения вsites-available применяются при старте)
-# RUN service apache2 restart
+# Права доступа
+RUN chown -R www-data:www-data /var/www/html/ && \
+    chmod -R 755 /var/www/html/
 
-# Устанавливаем права на папку /var/www/html/
-RUN chown -R www-data:www-data /var/www/html/
-RUN chmod -R 755 /var/www/html/
+# Composer
+RUN curl -sS https://getcomposer.org/installer | php -- --install-dir=/usr/local/bin --filename=composer && \
+    chmod +x /usr/local/bin/composer
 
-# Устанавливаем composer
-RUN curl -sS https://getcomposer.org/installer | php -- --install-dir=/usr/local/bin --filename=composer
-
-# Устанавливаем права на composer
-RUN chmod +x /usr/local/bin/composer
-
-# Устанавливаем ionCube Loader
-RUN apt-get update && apt-get install -y wget
-RUN wget https://downloads.ioncube.com/loader_downloads/ioncube_loaders_lin_x86-64.tar.gz
-RUN tar xzf ioncube_loaders_lin_x86-64.tar.gz && rm ioncube_loaders_lin_x86-64.tar.gz
-RUN mkdir -p /usr/lib/php/20210902/ && \
+# ionCube Loader
+RUN wget https://downloads.ioncube.com/loader_downloads/ioncube_loaders_lin_x86-64.tar.gz && \
+    tar xzf ioncube_loaders_lin_x86-64.tar.gz && \
+    rm ioncube_loaders_lin_x86-64.tar.gz && \
+    mkdir -p /usr/lib/php/20210902/ && \
     cp ioncube/ioncube_loader_lin_8.1.so /usr/lib/php/20210902/
-RUN echo "zend_extension = /usr/lib/php/20210902/ioncube_loader_lin_8.1.so" > /usr/local/etc/php/conf.d/00-ioncube.ini
 
-# Очистка apt кеша
-RUN apt-get clean && rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/*
+RUN echo "zend_extension = /usr/lib/php/20210902/ioncube_loader_lin_8.1.so" > /usr/local/etc/php/conf.d/00-ioncube.ini && \
+    echo "date.timezone = Europe/Moscow" >> /usr/local/etc/php/conf.d/00-ioncube.ini && \
+    echo "opcache.revalidate_freq = 0" >> /usr/local/etc/php/conf.d/00-ioncube.ini
+
+RUN apt-get clean && \
+    rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/* /ioncube
