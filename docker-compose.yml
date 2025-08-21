@@ -7,17 +7,9 @@ services:
       MYSQL_DATABASE: sitemanager
       MYSQL_USER: bitrixuser
       MYSQL_PASSWORD: bitrixpassword
-      MYSQL_ROOT_HOST: "%"  
     volumes:
       - db_data:/var/lib/mysql
-    ports:
-      - "3306:3306"  
     restart: always
-    healthcheck:
-      test: ["CMD", "mysqladmin", "ping", "-h", "localhost"]
-      interval: 5s
-      timeout: 10s
-      retries: 5
 
   web:
     build: .
@@ -25,12 +17,19 @@ services:
       - "80:80"
     environment:
       - PHP_TZ=Europe/Moscow
-      - APACHE_DOCUMENT_ROOT=/var/www/html
     volumes:
-      - ./php.ini:/usr/local/etc/php/conf.d/custom.ini  
+      - ./bitrix:/var/www/html/bitrix
+      - ./upload:/var/www/html/upload
+      - ./images:/var/www/html/images
+      - ./company:/var/www/html/company
+      - ./contacts:/var/www/html/contacts
+      - ./news:/var/www/html/news
+      - ./products:/var/www/html/products
+      - ./services:/var/www/html/services
+      - ./search:/var/www/html/search
+      - ./local:/var/www/html/local 
     depends_on:
-      db:
-        condition: service_healthy  
+      - db
     restart: always
 
 volumes:

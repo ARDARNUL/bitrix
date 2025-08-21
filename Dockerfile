@@ -12,13 +12,11 @@ RUN apt-get update && apt-get install -y \
     wget \
     --no-install-recommends
 
-# Локализация
 RUN locale-gen ru_RU.UTF-8
 ENV LANG=ru_RU.UTF-8
 ENV LANGUAGE=ru_RU:ru
 ENV LC_ALL=ru_RU.UTF-8
 
-# PHP расширения - ВСЕ ВМЕСТЕ в одном блоке
 RUN docker-php-ext-configure gd --with-freetype --with-jpeg && \
     docker-php-ext-install -j$(nproc) \
         gd \
@@ -26,25 +24,19 @@ RUN docker-php-ext-configure gd --with-freetype --with-jpeg && \
         mysqli \
         pdo_mysql
 
-# Apache модули
 RUN a2enmod rewrite
 
-# Копирование файлов
 COPY bitrixsetup.php /var/www/html/
 COPY apache.conf /etc/apache2/sites-available/000-default.conf
 
-# Настройка Apache
 RUN a2ensite 000-default.conf
 
-# Права доступа
 RUN chown -R www-data:www-data /var/www/html/ && \
     chmod -R 755 /var/www/html/
 
-# Composer
 RUN curl -sS https://getcomposer.org/installer | php -- --install-dir=/usr/local/bin --filename=composer && \
     chmod +x /usr/local/bin/composer
 
-# ionCube Loader
 RUN wget https://downloads.ioncube.com/loader_downloads/ioncube_loaders_lin_x86-64.tar.gz && \
     tar xzf ioncube_loaders_lin_x86-64.tar.gz && \
     rm ioncube_loaders_lin_x86-64.tar.gz && \
