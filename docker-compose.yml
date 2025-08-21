@@ -18,6 +18,7 @@ services:
     environment:
       - PHP_TZ=Europe/Moscow
     volumes:
+      - ./bitrix:/var/www/html
       - ./bitrix:/var/www/html/bitrix
       - ./upload:/var/www/html/upload
       - ./images:/var/www/html/images
@@ -28,6 +29,7 @@ services:
       - ./services:/var/www/html/services
       - ./search:/var/www/html/search
       - ./local:/var/www/html/local 
+      - ./local/php_interface:/var/www/html/local/php_interface
     depends_on:
       - db
     restart: always
