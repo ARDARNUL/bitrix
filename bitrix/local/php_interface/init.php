@@ -9,49 +9,74 @@ AddEventHandler('main', 'OnAfterUserRegister', function($arFields) {
 
 class BalanceManager
 {
+    
+
     public static function changeBalance($userId, $amount, $type = 'INCREMENT')
-    {
-        $amount = (int)$amount;
+{
+    $amount = (int)$amount;
+    $userId = (int)$userId;
 
-        $current = self::getBalance($userId);
-        if ($type === 'DECREMENT' && $current < $amount) {
-            return false;
-        }
-
-        $new = ($type === 'INCREMENT') ? $current + $amount : $current - $amount;
-        Option::set('transactions', 'balance_' . $userId, $new);
-
-        if (\CModule::IncludeModule('iblock')) {
-            \Bitrix\Main\Diag\Debug::writeToFile("Начинаем добавлять транзакцию. userId: " . $userId . ", amount: " . $amount . ", type: " . $type, "", "transactions.log");
-            $iblockId = self::getTransactionsIblockId();
-            if ($iblockId) {
-                $el = new \CIBlockElement();
-                $props = [
-                    'AMOUNT'  => $amount,
-                    'TYPE'    => $type, 
-                ];
-        		$arLoadProductArray = Array(
-					"MODIFIED_BY"    => $GLOBALS["USER"]->GetID(), 
-					"IBLOCK_SECTION_ID" => false,       
-					"IBLOCK_ID"      => $iblockId,
-					"PROPERTY_VALUES"=> $props,
-					"NAME"           => ($type === 'INCREMENT' ? 'Начисление ' : 'Списание ') . $amount,
-					"ACTIVE"         => "Y",          
-					);
-
-				$el->SetPropertyValuesEx(false, false, array("USER_ID" => $userId));
-
-                if($PRODUCT_ID = $el->Add($arLoadProductArray))
-  					echo "New ID: ".$PRODUCT_ID;
-				else
-  					echo "Error: ".$el->LAST_ERROR;
-            }
-        }
-
-        return true;
+    $current = self::getBalance($userId);
+    if ($type === 'DECREMENT' && $current < $amount) {
+        return false;
     }
 
-    public static function getBalance($userId)
+    $new = ($type === 'INCREMENT') ? $current + $amount : $current - $amount;
+    Option::set('transactions', 'balance_' . $userId, $new);
+
+    if (\CModule::IncludeModule('iblock')) {
+        $iblockId = self::getTransactionsIblockId();
+        if ($iblockId) {
+            $el = new \CIBlockElement();
+            
+            $typeEnumId = self::getTypeEnumId($type);
+            
+            $props = [
+                'USER_ID' => ['VALUE' => $userId],
+                'AMOUNT'  => ['VALUE' => $amount],
+                'TYPE'    => ['VALUE' => $typeEnumId], 
+                'DATE'    => ['VALUE' => \Bitrix\Main\Type\DateTime::createFromTimestamp(time())]
+            ];
+
+            $arLoadProductArray = [
+                "IBLOCK_ID" => $iblockId,
+                "NAME" => ($type === 'INCREMENT' ? 'Начисление ' : 'Списание ') . $amount,
+                "ACTIVE" => "Y",
+                "PROPERTY_VALUES" => $props
+            ];
+
+            if ($elementId = $el->Add($arLoadProductArray)) {
+                return true;
+            }
+        }
+    }
+
+    return true;
+}
+
+
+public static function getTypeEnumId($xmlId)
+{
+    if (!\CModule::IncludeModule('iblock')) {
+        return false;
+    }
+    
+    $dbEnum = \CIBlockPropertyEnum::GetList(
+        [],
+        [
+            "PROPERTY_ID" => 15,    
+            "XML_ID" => $xmlId       
+        ]
+    );
+    
+    if ($arEnum = $dbEnum->Fetch()) {
+        return $arEnum['ID']; 
+    }
+    
+    return false;
+}
+
+public static function getBalance($userId)
     {
         return (int)Option::get('transactions', 'balance_' . (int)$userId, 1000);
     }
