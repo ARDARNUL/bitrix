@@ -8,7 +8,8 @@ if (file_exists($initPath)) {
     class BalanceManager {
         public static function getBalance($userId) { return 1000; }
         public static function changeBalance($userId, $amount, $type) { return true; }
-        public static function getUserTransactions($userId, $limit = 10) { return []; }
+        public static function getUserTransactions($userId, $limit = 10, $offset = 0) { return []; }
+        public static function getTransactionsCount($userId) { return 0; }
     }
 }
 
@@ -48,8 +49,15 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['amount'], $_POST['act
     }
 }
 
+// Пагинация
+$pageSize = 10;
+$currentPage = isset($_GET['page']) ? (int)$_GET['page'] : 1;
+$offset = ($currentPage - 1) * $pageSize;
+
 $balance = BalanceManager::getBalance($userId);
-$transactions = BalanceManager::getUserTransactions($userId, 10);
+$transactions = BalanceManager::getUserTransactions($userId, $pageSize, $offset);
+$totalTransactions = BalanceManager::getTransactionsCount($userId);
+$totalPages = ceil($totalTransactions / $pageSize);
 
 ?>
 <h1>Личный кабинет</h1>
@@ -76,12 +84,14 @@ $transactions = BalanceManager::getUserTransactions($userId, 10);
     </button>
 </form>
 
-<h3>История операций (последние 10)</h3>
+<h3>История операций (всего: <?= $totalTransactions ?>)</h3>
 <?php if (!empty($transactions)): ?>
 <table style="width: 100%; border-collapse: collapse; margin: 20px 0;">
     <tr style="background: #f5f5f5;">
         <th style="padding: 10px; border: 1px solid #ddd;">Дата</th>
         <th style="padding: 10px; border: 1px solid #ddd;">Операция</th>
+        <th style="padding: 10px; border: 1px solid #ddd;">Сумма</th>
+        <th style="padding: 10px; border: 1px solid #ddd;">Тип</th>
     </tr>
     <?php foreach ($transactions as $transaction): ?>
     <tr>
@@ -91,9 +101,35 @@ $transactions = BalanceManager::getUserTransactions($userId, 10);
         <td style="padding: 10px; border: 1px solid #ddd;">
             <?= $transaction['NAME'] ?>
         </td>
+        <td style="padding: 10px; border: 1px solid #ddd;">
+            <?= $transaction['AMOUNT'] ?>
+        </td>
+        <td style="padding: 10px; border: 1px solid #ddd;">
+            <?= $transaction['TYPE'] ?>
+        </td>
     </tr>
     <?php endforeach; ?>
 </table>
+
+<!-- Пагинация -->
+<div style="margin: 20px 0; text-align: center;">
+    <?php if ($currentPage > 1): ?>
+        <a href="?page=<?= $currentPage - 1 ?>" style="margin: 0 5px; padding: 5px 10px; border: 1px solid #ccc; text-decoration: none;">← Назад</a>
+    <?php endif; ?>
+    
+    <?php for ($i = 1; $i <= $totalPages; $i++): ?>
+        <?php if ($i == $currentPage): ?>
+            <span style="margin: 0 5px; padding: 5px 10px; background: #007bff; color: white; border: 1px solid #007bff;"><?= $i ?></span>
+        <?php else: ?>
+            <a href="?page=<?= $i ?>" style="margin: 0 5px; padding: 5px 10px; border: 1px solid #ccc; text-decoration: none;"><?= $i ?></a>
+        <?php endif; ?>
+    <?php endfor; ?>
+    
+    <?php if ($currentPage < $totalPages): ?>
+        <a href="?page=<?= $currentPage + 1 ?>" style="margin: 0 5px; padding: 5px 10px; border: 1px solid #ccc; text-decoration: none;">Вперед →</a>
+    <?php endif; ?>
+</div>
+
 <?php else: ?>
 <p>Нет операций</p>
 <?php endif; ?>
