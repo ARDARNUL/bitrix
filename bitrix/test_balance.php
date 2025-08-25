@@ -1,25 +1,31 @@
 <?php
-require($_SERVER['DOCUMENT_ROOT'].'/bitrix/header.php');
+// test_structure.php
+echo "DOCUMENT_ROOT: " . $_SERVER['DOCUMENT_ROOT'] . "<br>";
+echo "Текущий путь: " . __FILE__ . "<br>";
 
-echo "<h1>Тест BalanceManager</h1>";
+// Проверим существование различных путей
+$paths_to_check = [
+    $_SERVER["DOCUMENT_ROOT"] . "/local/php_interface/init.php",
+    $_SERVER["DOCUMENT_ROOT"] . "/../local/php_interface/init.php", 
+    $_SERVER["DOCUMENT_ROOT"] . "/bitrix/../local/php_interface/init.php",
+    dirname(__FILE__) . "/../../local/php_interface/init.php"
+];
 
-if (class_exists('BalanceManager')) {
-    echo "<p style='color:green'>✓ BalanceManager загружен</p>";
-    
-    $testUserId = 1;
-    $balance = BalanceManager::getBalance($testUserId);
-    echo "<p>Баланс пользователя $testUserId: <b>$balance баллов</b></p>";
-    
-    $result = BalanceManager::changeBalance($testUserId, 100, 'INCREMENT');
-    if ($result) {
-        $newBalance = BalanceManager::getBalance($testUserId);
-        echo "<p>✓ Начисление работает: $newBalance баллов</p>";
-    }
-    
-} else {
-    echo "<p style='color:red'>✗ BalanceManager НЕ загружен</p>";
-    echo "<p>Проверьте файл: /local/php_interface/init.php</p>";
+echo "<h3>Проверка путей:</h3>";
+foreach ($paths_to_check as $path) {
+    $exists = file_exists($path) ? "✅ СУЩЕСТВУЕТ" : "❌ НЕ СУЩЕСТВУЕТ";
+    echo $path . " - " . $exists . "<br>";
 }
 
-require($_SERVER['DOCUMENT_ROOT'].'/bitrix/footer.php');
+// Посмотрим содержимое корневой папки
+echo "<h3>Содержимое корня:</h3>";
+$root = $_SERVER["DOCUMENT_ROOT"];
+$files = scandir($root);
+foreach ($files as $file) {
+    if ($file != '.' && $file != '..') {
+        $full_path = $root . '/' . $file;
+        $type = is_dir($full_path) ? "📁 ДИРЕКТОРИЯ" : "📄 ФАЙЛ";
+        echo $type . ": " . $file . "<br>";
+    }
+}
 ?>
