@@ -1,0 +1,9 @@
+RewriteEngine On
+RewriteCond %{REQUEST_FILENAME} !-f
+RewriteCond %{REQUEST_FILENAME} !-l
+RewriteCond %{REQUEST_FILENAME} !-d
+RewriteRule ^(.*)$ /index.php [L,QSA]
+
+RedirectMatch 404 /bitrix/
+RedirectMatch 404 /local/modules/
+RedirectMatch 404 /local/php_interface/

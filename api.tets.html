@@ -1,0 +1,28 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>API Test</title>
+    <script>
+        async function testAPI() {
+            const userId = document.getElementById('userId').value;
+
+            const balanceResponse = await fetch(`/local/api/balance.php?action=balance&user_id=${userId}`);
+            const balanceData = await balanceResponse.json();
+
+            const transactionsResponse = await fetch(`/local/api/balance.php?action=transactions&user_id=${userId}`);
+            const transactionsData = await transactionsResponse.json();
+            
+            document.getElementById('result').innerHTML = `
+                <h3>Balance: ${JSON.stringify(balanceData, null, 2)}</h3>
+                <h3>Transactions: ${JSON.stringify(transactionsData, null, 2)}</h3>
+            `;
+        }
+    </script>
+</head>
+<body>
+    <h1>API Test Page</h1>
+    <input type="number" id="userId" value="1" placeholder="User ID">
+    <button onclick="testAPI()">Test API</button>
+    <div id="result"></div>
+</body>
+</html>
